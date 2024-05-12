@@ -56,14 +56,12 @@
      (xorg-configuration (keyboard-layout keyboard-layout)))
     (service bluetooth-service-type
 	     (bluetooth-configuration (auto-enable? #t)))
-    (service kmonad-service-type
-             (kmonad-configuration (kbd-location "/home/jslee/.config/kmonad/tutorial.kbd")))
+    (kmonad-service #:kbd-location "~/.config/kmonad/tutorial.kbd")
     (simple-service 'blueman dbus-root-service-type (list blueman))
     (modify-services %desktop-services
                      (udev-service-type config =>
                                         (udev-configuration (inherit config)
-                                                            (rules (cons kmonad
-                                                                         (udev-configuration-rules config))))))))
+                                                            (rules (cons kmonad (udev-configuration-rules config))))))))
  (bootloader (bootloader-configuration
 	      (bootloader grub-efi-bootloader)
 	      (targets (list "/boot/efi"))

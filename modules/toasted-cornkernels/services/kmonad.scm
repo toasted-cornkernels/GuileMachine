@@ -9,33 +9,43 @@
   #:use-module (ice-9 match)
   #:export (kmonad-service-type
             kmonad-configuration
-            kmonad-shepherd-service))
-
+            kmonad-shepherd-service
+            kmonad-service))
 
 (define-record-type* <kmonad-configuration>
   kmonad-configuration ; constructor (macro) name
   make-kmonad-configuration ; constructor (function) name
   kmonad-configuration? ; characteristic function name
-  (kmonad kmonad-configuration-kmonad (default kmonad))
-  (kbd-location kmonad-configuration-kbd-location)) ; required slot!
+  (kmonad kmonad-configuration-kmonad
+          (default kmonad))
+  (kbd-location kmonad-configuration-kbd-location)
+  (extra-options kmonad-configuration-options strings
+                 (default '()))) ; required slot!
 
-(define (kmonad-shepherd-service config)
-  (list (shepherd-service
-         (provision '(kmonad))
-         (requirement '(user-processes))
-         (start #~(make-forkexec-contructor
-                   (list #$(file-append kmonad "/bin/kmonad")
-                         (kmonad-configuration-kbd-location
-                          config))))
-         (stop #~(make-kill-destructor)))))
-
+(define kmonad-shepherd-service
+  (match-lambda
+    (($ <kmonad-configuration> kmonad kbd-location extra-options)
+     (list (shepherd-service            ; creates <shepherd-service>
+            (provision '(kmonad))
+            (documentation "Launch KMonad on system startup.")
+            (requirement '(user-processes))
+            (start #~(make-forkexec-constructor
+                      (list #$(file-append kmonad "/bin/kmonad") kbd-location)))
+            (stop #~(make-kill-destructor)))))))
 
 (define kmonad-service-type
   (service-type
    (name 'kmonad)
    (extensions
-    ;; TODO: extend activation-service-type
     (list (service-extension shepherd-root-service-type
                              kmonad-shepherd-service)))
-   (default-value (kmonad-configuration (kbd-location "~/.config/kmonad/config.kbd")))
    (description "Launch kmonad on startup.")))
+
+(define* (kmonad-service #:key (kmonad kmonad)
+                         kbd-location
+                         (extra-options '()))
+  (service kmonad-service-type
+           (kmonad-configuration
+            (irssi irssi)
+            (kbd-location kbd-location)
+            (extra-options extra-options))))
